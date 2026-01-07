@@ -57,93 +57,36 @@ function App() {
   }
 
   const handleSearch = async (searchParams) => {
-    if (!apiKey) {
-      setShowApiModal(true)
-      return
-    }
-
     setIsLoading(true)
     setError(null)
     setBusinesses([])
     setSearchInfo(searchParams)
 
     try {
-      // First, geocode the location
-      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(searchParams.location)}&key=${apiKey}`
-      const geocodeResponse = await fetch(geocodeUrl)
-      const geocodeData = await geocodeResponse.json()
-
-      if (geocodeData.status !== 'OK' || !geocodeData.results?.length) {
-        throw new Error(`No se pudo encontrar la ubicacion: ${searchParams.location}`)
-      }
-
-      const { lat, lng } = geocodeData.results[0].geometry.location
-      const radiusMeters = searchParams.radius * 1609.34 // Convert miles to meters
-
-      // Search for places using Text Search
-      const query = `${searchParams.category} near ${searchParams.location}`
-      const placesUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&location=${lat},${lng}&radius=${radiusMeters}&key=${apiKey}`
-
-      const placesResponse = await fetch(placesUrl)
-      const placesData = await placesResponse.json()
-
-      if (placesData.status === 'REQUEST_DENIED') {
-        throw new Error('API Key invalida o sin permisos. Verifica tu configuracion en Google Cloud Console.')
-      }
-
-      if (placesData.status !== 'OK' && placesData.status !== 'ZERO_RESULTS') {
-        throw new Error(`Error de Google API: ${placesData.status}`)
-      }
-
-      const results = placesData.results || []
-
-      // Get details for each place
-      const businessesWithDetails = await Promise.all(
-        results.slice(0, 20).map(async (place) => {
-          try {
-            const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=name,formatted_address,formatted_phone_number,website,rating,user_ratings_total,opening_hours,business_status&key=${apiKey}`
-            const detailsResponse = await fetch(detailsUrl)
-            const detailsData = await detailsResponse.json()
-
-            if (detailsData.status === 'OK' && detailsData.result) {
-              const result = detailsData.result
-              return {
-                name: result.name || place.name,
-                address: result.formatted_address || place.formatted_address,
-                phone: result.formatted_phone_number || null,
-                website: result.website || null,
-                rating: result.rating || place.rating || null,
-                review_count: result.user_ratings_total || place.user_ratings_total || 0,
-                is_open: result.opening_hours?.open_now ?? null,
-                business_status: result.business_status || null
-              }
-            }
-
-            // Fallback to basic info
-            return {
-              name: place.name,
-              address: place.formatted_address,
-              phone: null,
-              website: null,
-              rating: place.rating || null,
-              review_count: place.user_ratings_total || 0,
-              is_open: place.opening_hours?.open_now ?? null,
-              business_status: place.business_status || null
-            }
-          } catch {
-            return {
-              name: place.name,
-              address: place.formatted_address,
-              phone: null,
-              website: null,
-              rating: place.rating || null,
-              review_count: place.user_ratings_total || 0,
-              is_open: null,
-              business_status: null
-            }
-          }
+      // Call backend API instead of Google directly (avoids CORS)
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          location: searchParams.location,
+          radius: searchParams.radius,
+          category: searchParams.category
         })
-      )
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error en la busqueda')
+      }
+
+      const businessesWithDetails = data.businesses.map(business => ({
+        ...business,
+        is_open: null,
+        business_status: null
+      }))
 
       setBusinesses(businessesWithDetails)
 
