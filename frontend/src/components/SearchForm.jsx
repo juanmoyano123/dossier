@@ -1,104 +1,182 @@
 import { useState } from 'react'
+import { Search, MapPin, Ruler, Building, Loader2, AlertCircle } from 'lucide-react'
 
 const CATEGORIES = [
-  { value: 'pool services', label: 'Pool Services' },
-  { value: 'landscaping', label: 'Landscaping' },
-  { value: 'beauty salon', label: 'Beauty Salons' },
-  { value: 'restaurant', label: 'Restaurants' },
-  { value: 'barbershop', label: 'Barbershops' },
-  { value: 'auto repair', label: 'Auto Repair' },
-  { value: 'plumber', label: 'Plumbers' },
-  { value: 'electrician', label: 'Electricians' },
+  { value: 'pool services', label: 'Servicios de Piscina', icon: '🏊' },
+  { value: 'landscaping', label: 'Jardineria / Landscaping', icon: '🌿' },
+  { value: 'beauty salon', label: 'Salones de Belleza', icon: '💇' },
+  { value: 'restaurant', label: 'Restaurantes', icon: '🍽️' },
+  { value: 'barbershop', label: 'Barberias', icon: '💈' },
+  { value: 'auto repair', label: 'Talleres Mecanicos', icon: '🔧' },
+  { value: 'plumber', label: 'Plomeros', icon: '🚿' },
+  { value: 'electrician', label: 'Electricistas', icon: '⚡' },
+  { value: 'dentist', label: 'Dentistas', icon: '🦷' },
+  { value: 'gym fitness', label: 'Gimnasios', icon: '💪' },
+  { value: 'veterinarian', label: 'Veterinarios', icon: '🐾' },
+  { value: 'real estate', label: 'Bienes Raices', icon: '🏠' },
+  { value: 'cleaning services', label: 'Servicios de Limpieza', icon: '🧹' },
+  { value: 'accounting', label: 'Contadores', icon: '📊' },
+  { value: 'lawyer attorney', label: 'Abogados', icon: '⚖️' },
 ]
 
-function SearchForm({ onSearch, isLoading }) {
-  const [location, setLocation] = useState('Hickory, NC')
+const RADIUS_OPTIONS = [
+  { value: 5, label: '5 millas' },
+  { value: 10, label: '10 millas' },
+  { value: 25, label: '25 millas' },
+  { value: 50, label: '50 millas' },
+]
+
+function SearchForm({ onSearch, isLoading, hasApiKey }) {
+  const [location, setLocation] = useState('')
   const [radius, setRadius] = useState(10)
-  const [category, setCategory] = useState('pool services')
+  const [category, setCategory] = useState('')
+  const [customCategory, setCustomCategory] = useState('')
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSearch({ location, radius, category })
+    const searchCategory = category === 'custom' ? customCategory : category
+    if (!location || !searchCategory) return
+    onSearch({ location, radius, category: searchCategory })
   }
 
+  const selectedCategory = CATEGORIES.find(c => c.value === category)
+
   return (
-    <div className="glass-effect rounded-2xl shadow-soft p-8 mb-8 border border-white/20">
+    <div className="glass rounded-2xl p-6 sm:p-8 mb-8">
+      {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 rounded-xl">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+        <div className="gradient-bg p-3 rounded-xl shadow-lg shadow-purple-500/20">
+          <Search className="w-6 h-6 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800">Buscar Negocios</h2>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Buscar Negocios</h2>
+          <p className="text-sm text-gray-500">Encuentra proveedores en tu area</p>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      {!hasApiKey && (
+        <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              📍 Ciudad / ZIP Code
+            <p className="text-sm font-medium text-amber-800">API Key requerida</p>
+            <p className="text-sm text-amber-600">
+              Configura tu Google Places API Key para comenzar a buscar negocios.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Main search inputs */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Location Input */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <MapPin className="w-4 h-4 text-purple-600" />
+              Ubicacion
             </label>
             <input
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="Ej: Hickory, NC o 28601"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              placeholder="Ej: Miami, FL o 33101"
+              className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl input-focus text-gray-900 placeholder-gray-400"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              📏 Radio
+          {/* Radius Select */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <Ruler className="w-4 h-4 text-purple-600" />
+              Radio de busqueda
             </label>
             <select
               value={radius}
               onChange={(e) => setRadius(Number(e.target.value))}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl input-focus text-gray-900 appearance-none cursor-pointer"
             >
-              <option value={5}>5 millas</option>
-              <option value={10}>10 millas</option>
-              <option value={25}>25 millas</option>
-              <option value={50}>50 millas</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              🏢 Categoría
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-            >
-              {CATEGORIES.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
+              {RADIUS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </select>
           </div>
+
+          {/* Category Select */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <Building className="w-4 h-4 text-purple-600" />
+              Categoria
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl input-focus text-gray-900 appearance-none cursor-pointer"
+              required
+            >
+              <option value="">Selecciona una categoria</option>
+              {CATEGORIES.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.icon} {cat.label}
+                </option>
+              ))}
+              <option value="custom">✏️ Categoria personalizada</option>
+            </select>
+          </div>
         </div>
 
+        {/* Custom category input */}
+        {category === 'custom' && (
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              Categoria personalizada
+            </label>
+            <input
+              type="text"
+              value={customCategory}
+              onChange={(e) => setCustomCategory(e.target.value)}
+              placeholder="Ej: yoga studios, coffee shops, etc."
+              className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl input-focus text-gray-900 placeholder-gray-400"
+              required
+            />
+          </div>
+        )}
+
+        {/* Selected category preview */}
+        {selectedCategory && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-xl w-fit">
+            <span className="text-lg">{selectedCategory.icon}</span>
+            <span className="text-sm font-medium text-purple-700">
+              {selectedCategory.label}
+            </span>
+          </div>
+        )}
+
+        {/* Submit Button */}
         <button
           type="submit"
-          disabled={isLoading}
-          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+          disabled={isLoading || !hasApiKey}
+          className="w-full btn-primary py-4 text-lg flex items-center justify-center gap-3"
         >
           {isLoading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-              </svg>
-              Buscando negocios...
-            </span>
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Buscando negocios...</span>
+            </>
           ) : (
-            '🚀 Buscar Negocios'
+            <>
+              <Search className="w-5 h-5" />
+              <span>Buscar Negocios</span>
+            </>
           )}
         </button>
+
+        {/* Help text */}
+        <p className="text-center text-xs text-gray-400">
+          Los resultados provienen de Google Places API. Puedes buscar cualquier tipo de negocio.
+        </p>
       </form>
     </div>
   )
