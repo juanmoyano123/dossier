@@ -2,23 +2,12 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
-  MapPin,
   Building2,
-  Copy,
-  Check,
   Download,
   LayoutGrid,
   List,
-  Settings,
-  X,
   Key,
-  ExternalLink,
-  Star,
-  Phone,
-  Globe,
-  Loader2,
-  Sparkles,
-  Github
+  Loader2
 } from 'lucide-react'
 import SearchForm from './components/SearchForm'
 import BusinessCard from './components/BusinessCard'
@@ -38,11 +27,10 @@ function App() {
   const [searchInfo, setSearchInfo] = useState(null)
 
   useEffect(() => {
-    // Check if API key exists on mount
     if (!apiKey) {
       setShowApiModal(true)
     }
-  }, [])
+  }, [apiKey])
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -53,7 +41,7 @@ function App() {
     localStorage.setItem('google_places_api_key', key)
     setApiKey(key)
     setShowApiModal(false)
-    showToast('API Key guardada correctamente')
+    showToast('API Key saved successfully')
   }
 
   const handleSearch = async (searchParams) => {
@@ -63,7 +51,6 @@ function App() {
     setSearchInfo(searchParams)
 
     try {
-      // Call backend API instead of Google directly (avoids CORS)
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: {
@@ -79,7 +66,7 @@ function App() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Error en la busqueda')
+        throw new Error(data.error || 'Search error')
       }
 
       const businessesWithDetails = data.businesses.map(business => ({
@@ -91,9 +78,9 @@ function App() {
       setBusinesses(businessesWithDetails)
 
       if (businessesWithDetails.length === 0) {
-        showToast('No se encontraron negocios en esta area', 'warning')
+        showToast('No businesses found in this area', 'warning')
       } else {
-        showToast(`Se encontraron ${businessesWithDetails.length} negocios`, 'success')
+        showToast(`Found ${businessesWithDetails.length} businesses`)
       }
     } catch (err) {
       setError(err.message)
@@ -103,11 +90,11 @@ function App() {
     }
   }
 
-  const copyToClipboard = () => {
+  const exportToSpreadsheet = () => {
     if (businesses.length === 0) return
 
-    // Create TSV format (Tab Separated Values) for easy paste to spreadsheet
-    const headers = ['Nombre', 'Direccion', 'Telefono', 'Website', 'Rating', 'Reviews']
+    // Create TSV format optimized for Google Sheets/Excel
+    const headers = ['Business Name', 'Address', 'Phone', 'Website', 'Rating', 'Reviews']
     const rows = businesses.map(b => [
       b.name,
       b.address,
@@ -120,131 +107,58 @@ function App() {
     const tsv = [headers.join('\t'), ...rows.map(r => r.join('\t'))].join('\n')
 
     navigator.clipboard.writeText(tsv).then(() => {
-      showToast('Datos copiados al portapapeles. Listos para pegar en tu spreadsheet!')
+      showToast('Data copied! Paste into Google Sheets or Excel')
     }).catch(() => {
-      showToast('Error al copiar', 'error')
+      showToast('Error copying data', 'error')
     })
   }
 
-  const downloadCSV = () => {
-    if (businesses.length === 0) return
-
-    const headers = ['Nombre', 'Direccion', 'Telefono', 'Website', 'Rating', 'Reviews']
-    const rows = businesses.map(b => [
-      `"${(b.name || '').replace(/"/g, '""')}"`,
-      `"${(b.address || '').replace(/"/g, '""')}"`,
-      `"${(b.phone || '').replace(/"/g, '""')}"`,
-      `"${(b.website || '').replace(/"/g, '""')}"`,
-      b.rating || '',
-      b.review_count || 0
-    ])
-
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `negocios_${searchInfo?.category || 'busqueda'}_${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
-
-    showToast('Archivo CSV descargado')
-  }
-
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
       {/* Header */}
-      <header className="sticky top-0 z-50 glass border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <header className="border-b bg-white" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="max-w-7xl mx-auto px-12">
           <div className="flex items-center justify-between h-16">
-            <motion.div
-              className="flex items-center gap-3"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
+            <div className="flex items-center gap-2">
+              <Building2 className="w-5 h-5" style={{ color: 'var(--color-text-primary)' }} />
+              <span className="font-semibold text-lg" style={{ color: 'var(--color-text-primary)' }}>
+                Dossier
+              </span>
+            </div>
+            <button
+              onClick={() => setShowApiModal(true)}
+              className="btn btn-secondary"
             >
-              <div className="gradient-bg p-2 rounded-xl">
-                <Building2 className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold gradient-text">Dossier</span>
-            </motion.div>
-
-            <motion.div
-              className="flex items-center gap-3"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                title="Ver en GitHub"
-              >
-                <Github className="w-5 h-5 text-gray-600" />
-              </a>
-              <button
-                onClick={() => setShowApiModal(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium text-gray-600"
-              >
-                <Key className="w-4 h-4" />
-                <span className="hidden sm:inline">API Key</span>
-              </button>
-            </motion.div>
+              <Key className="w-4 h-4" />
+              <span className="hidden sm:inline">API Key</span>
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-16 sm:py-24">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-gradient-to-br from-purple-400/20 to-pink-400/20 blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-gradient-to-br from-blue-400/20 to-cyan-400/20 blur-3xl" />
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-12 py-20">
+        {/* Title Section */}
+        <div className="text-center mb-16">
+          <motion.h1
+            className="text-4xl sm:text-5xl font-bold mb-3"
+            style={{ color: 'var(--color-text-primary)', lineHeight: '1.2' }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-6">
-              <Sparkles className="w-4 h-4 text-purple-600" />
-              <span className="text-sm font-medium text-gray-700">
-                Busqueda inteligente de negocios
-              </span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-6">
-              <span className="gradient-text">Encuentra proveedores</span>
-              <br />
-              <span className="text-gray-900">en segundos</span>
-            </h1>
-
-            <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-              Busca negocios locales, obtiene sus datos de contacto y exportalos
-              directamente a tu spreadsheet. Sin complicaciones.
-            </p>
-
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-500">
-              <div className="flex items-center gap-2">
-                <Search className="w-4 h-4" />
-                <span>Busqueda por categoria</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                <span>Por ubicacion</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Copy className="w-4 h-4" />
-                <span>Copia y pega</span>
-              </div>
-            </div>
-          </motion.div>
+            Business Intelligence
+          </motion.h1>
+          <motion.p
+            className="text-lg"
+            style={{ color: 'var(--color-text-secondary)' }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            Find and export local business data in seconds
+          </motion.p>
         </div>
-      </section>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {/* Search Form */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -261,17 +175,12 @@ function App() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="glass border border-red-200 rounded-2xl p-4 mb-6"
+              className="card p-6 mt-12"
+              style={{ borderColor: 'var(--color-error)' }}
             >
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-red-100">
-                  <X className="w-5 h-5 text-red-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-red-800">Error en la busqueda</h3>
-                  <p className="text-red-600 text-sm mt-1">{error}</p>
-                </div>
-              </div>
+              <p className="text-sm font-medium" style={{ color: 'var(--color-error)' }}>
+                {error}
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -283,15 +192,11 @@ function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="glass rounded-2xl p-12 text-center"
+              className="empty-state"
             >
-              <div className="relative inline-block">
-                <div className="w-16 h-16 rounded-full gradient-bg animate-pulse-ring absolute inset-0" />
-                <Loader2 className="w-16 h-16 text-purple-600 animate-spin relative z-10" />
-              </div>
-              <p className="mt-6 text-gray-600 font-medium">Buscando negocios...</p>
-              <p className="text-sm text-gray-400 mt-2">
-                Esto puede tomar unos segundos
+              <div className="loading-spinner mx-auto mb-4"></div>
+              <p className="font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                Searching businesses...
               </p>
             </motion.div>
           )}
@@ -303,81 +208,77 @@ function App() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="glass rounded-2xl p-6 sm:p-8"
+              exit={{ opacity: 0 }}
+              className="mt-24"
             >
-              {/* Results Header */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-gray-200">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                    Resultados
-                    <span className="badge badge-info">
-                      {businesses.length}
-                    </span>
-                  </h2>
+              {/* Results Toolbar */}
+              <div className="flex items-center justify-between mb-12 flex-wrap gap-6">
+                <div className="flex items-baseline gap-2">
+                  <span className="numeric text-2xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                    {businesses.length}
+                  </span>
+                  <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                    results
+                  </span>
                   {searchInfo && (
-                    <p className="text-gray-500 text-sm mt-1">
-                      {searchInfo.category} en {searchInfo.location} ({searchInfo.radius} millas)
-                    </p>
+                    <span className="text-sm ml-2" style={{ color: 'var(--color-text-tertiary)' }}>
+                      • {searchInfo.category} in {searchInfo.location}
+                    </span>
                   )}
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={exportToSpreadsheet}
+                    className="btn btn-primary"
+                  >
+                    <Download className="w-4 h-4" />
+                    Export to Spreadsheet
+                  </button>
+
                   {/* View Toggle */}
-                  <div className="flex bg-gray-100 p-1 rounded-xl">
+                  <div className="flex p-1 rounded-lg" style={{ background: 'var(--color-bg)' }}>
                     <button
                       onClick={() => setViewMode('cards')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                      className={`px-3 py-2 rounded font-medium text-sm transition-all ${
                         viewMode === 'cards'
-                          ? 'bg-white text-purple-600 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
+                          ? 'bg-white shadow-sm'
+                          : ''
                       }`}
+                      style={{
+                        color: viewMode === 'cards' ? 'var(--color-accent)' : 'var(--color-text-secondary)'
+                      }}
                     >
                       <LayoutGrid className="w-4 h-4" />
-                      Cards
                     </button>
                     <button
                       onClick={() => setViewMode('table')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                      className={`px-3 py-2 rounded font-medium text-sm transition-all ${
                         viewMode === 'table'
-                          ? 'bg-white text-purple-600 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
+                          ? 'bg-white shadow-sm'
+                          : ''
                       }`}
+                      style={{
+                        color: viewMode === 'table' ? 'var(--color-accent)' : 'var(--color-text-secondary)'
+                      }}
                     >
                       <List className="w-4 h-4" />
-                      Tabla
                     </button>
                   </div>
-
-                  {/* Export Buttons */}
-                  <button
-                    onClick={copyToClipboard}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium text-sm transition-all shadow-lg shadow-emerald-500/25"
-                  >
-                    <Copy className="w-4 h-4" />
-                    Copiar
-                  </button>
-                  <button
-                    onClick={downloadCSV}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium text-sm transition-all shadow-lg shadow-blue-500/25"
-                  >
-                    <Download className="w-4 h-4" />
-                    CSV
-                  </button>
                 </div>
               </div>
 
               {/* Results Display */}
               {viewMode === 'cards' ? (
                 <motion.div
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                   initial="hidden"
                   animate="visible"
                   variants={{
                     hidden: { opacity: 0 },
                     visible: {
                       opacity: 1,
-                      transition: { staggerChildren: 0.05 }
+                      transition: { staggerChildren: 0.03 }
                     }
                   }}
                 >
@@ -385,7 +286,7 @@ function App() {
                     <motion.div
                       key={index}
                       variants={{
-                        hidden: { opacity: 0, y: 20 },
+                        hidden: { opacity: 0, y: 10 },
                         visible: { opacity: 1, y: 0 }
                       }}
                     >
@@ -405,40 +306,30 @@ function App() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="glass rounded-2xl p-12 text-center"
+            className="empty-state"
           >
-            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl gradient-bg flex items-center justify-center animate-float">
-              <Search className="w-10 h-10 text-white" />
+            <div
+              className="w-16 h-16 mx-auto mb-6 rounded-lg flex items-center justify-center"
+              style={{ background: 'var(--color-bg)' }}
+            >
+              <Search className="w-8 h-8" style={{ color: 'var(--color-text-tertiary)' }} />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              Listo para buscar
+            <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--color-text-primary)' }}>
+              Ready to search
             </h3>
-            <p className="text-gray-500 max-w-md mx-auto">
-              Completa el formulario de busqueda para encontrar negocios locales.
-              Los resultados se mostraran aqui y podras exportarlos facilmente.
+            <p className="text-sm max-w-md mx-auto" style={{ color: 'var(--color-text-secondary)' }}>
+              Enter a location and category to find local businesses. Results can be exported directly to spreadsheets.
             </p>
           </motion.div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="gradient-bg p-1.5 rounded-lg">
-                <Building2 className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-semibold gradient-text">Dossier</span>
-              <span className="text-gray-400">|</span>
-              <span className="text-sm text-gray-500">
-                Herramienta de prospeccion de negocios
-              </span>
-            </div>
-            <p className="text-sm text-gray-400">
-              Desarrollado con React + Google Places API
-            </p>
-          </div>
+      <footer className="border-t mt-24" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="max-w-7xl mx-auto px-12 py-8 text-center">
+          <p className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
+            Powered by Google Places API
+          </p>
         </div>
       </footer>
 
