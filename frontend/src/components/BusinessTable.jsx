@@ -1,80 +1,80 @@
+import { Star, ExternalLink, Phone, Globe, MapPin } from 'lucide-react'
+
 function BusinessTable({ businesses }) {
+  const renderRating = (rating) => {
+    if (!rating) return <span className="text-gray-400">-</span>
+
+    return (
+      <div className="flex items-center gap-1">
+        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+        <span className="font-medium">{rating}</span>
+      </div>
+    )
+  }
+
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full bg-white border border-gray-300 rounded-lg">
-        <thead className="bg-gray-50">
+    <div className="table-container bg-white rounded-xl overflow-hidden shadow-sm">
+      <table>
+        <thead>
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-              #
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-              Nombre
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-              Dirección
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-              Teléfono
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-              Website
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-              Rating
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-              Reviews
-            </th>
+            <th className="w-12">#</th>
+            <th>Nombre</th>
+            <th>Direccion</th>
+            <th>Telefono</th>
+            <th>Website</th>
+            <th className="text-center">Rating</th>
+            <th className="text-center">Reviews</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
+        <tbody>
           {businesses.map((business, index) => (
-            <tr key={index} className="hover:bg-gray-50">
-              <td className="px-4 py-3 text-sm text-gray-900">{index + 1}</td>
-              <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                {business.name}
+            <tr key={index}>
+              <td className="font-medium text-gray-400">{index + 1}</td>
+              <td>
+                <div className="font-semibold text-gray-900 max-w-[200px]">
+                  {business.name}
+                </div>
               </td>
-              <td className="px-4 py-3 text-sm text-gray-600">
-                {business.address}
+              <td>
+                <div className="flex items-start gap-2 max-w-[250px]">
+                  <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-600">{business.address}</span>
+                </div>
               </td>
-              <td className="px-4 py-3 text-sm text-gray-600">
+              <td>
                 {business.phone ? (
                   <a
                     href={`tel:${business.phone}`}
-                    className="text-blue-600 hover:underline"
+                    className="flex items-center gap-2 text-purple-600 hover:text-purple-700 font-medium"
                   >
+                    <Phone className="w-4 h-4" />
                     {business.phone}
                   </a>
                 ) : (
-                  'N/A'
+                  <span className="text-gray-400">-</span>
                 )}
               </td>
-              <td className="px-4 py-3 text-sm text-gray-600">
+              <td>
                 {business.website ? (
                   <a
                     href={business.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
+                    className="flex items-center gap-2 text-purple-600 hover:text-purple-700 font-medium"
                   >
-                    Ver sitio
+                    <Globe className="w-4 h-4" />
+                    <span className="truncate max-w-[150px]">Ver sitio</span>
+                    <ExternalLink className="w-3 h-3" />
                   </a>
                 ) : (
-                  'N/A'
+                  <span className="text-gray-400">-</span>
                 )}
               </td>
-              <td className="px-4 py-3 text-sm text-gray-900">
-                {business.rating ? (
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-500">★</span>
-                    <span>{business.rating}</span>
-                  </div>
-                ) : (
-                  'N/A'
-                )}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-600">
-                {business.review_count || 0}
+              <td className="text-center">{renderRating(business.rating)}</td>
+              <td className="text-center">
+                <span className="text-gray-600">
+                  {business.review_count?.toLocaleString() || 0}
+                </span>
               </td>
             </tr>
           ))}
